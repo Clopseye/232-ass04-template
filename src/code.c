@@ -102,9 +102,8 @@ static void _nullify(Node **nodePtrPtr)
 
 static Node* _findFirst(Node *headPtr)
 {
-    if (headPtr) return headPtr;
+    return headPtr;
     // TODO
-    return NULL;
 }
 
 
@@ -230,8 +229,10 @@ Node* createNode(int value)
     Node *newNodePtr = malloc(sizeof(Node));
     if (newNodePtr == NULL)
     {
+        fprintf(stderr, "Error: Memry allocation failed in CreateNode.\n");
         return NULL;
     }
+
     initNode(newNodePtr, value);
     return newNodePtr;
     // TODO
@@ -289,6 +290,7 @@ int addFirst(Node **headPtrPtr, Node *newNodePtr)
 {
     if (headPtrPtr == NULL || newNodePtr == NULL) 
     {
+        fprintf(stderr, "Error: Invalid argument passed to list function.\n");
         return -1;
     }
 
@@ -322,11 +324,18 @@ int addLast(Node **headPtrPtr, Node *newNodePtr)
 {
     if (headPtrPtr == NULL || newNodePtr == NULL) 
     {
+        fprintf(stderr, "Error: Invalid argument passed to list function.\n");
         return -1;
+    }
+
+    if (*headPtrPtr == NULL)
+    {
+        *headPtrPtr = newNodePtr;
+        return 0;
     }
     Node *last = _findLast(*headPtrPtr);
     last->nextPtr = newNodePtr;
-    newNodePtr->nextPtr = NULL;
+
     // TODO
     return 0;
 }
@@ -352,14 +361,15 @@ int addLast(Node **headPtrPtr, Node *newNodePtr)
 
 Node* detachFirst(Node **headPtrPtr)
 {
-    if (headPtrPtr == NULL)
+    if (headPtrPtr == NULL || *headPtrPtr == NULL)
     {
         return NULL;
     }
 
     Node *detachedPtr = _findFirst(*headPtrPtr);
     *headPtrPtr = (*headPtrPtr)->nextPtr;
-    _nullify(&detachedPtr->nextPtr);
+    _nullify(&(detachedPtr->nextPtr));
+
     // TODO
     return detachedPtr;
 }
@@ -384,8 +394,28 @@ Node* detachFirst(Node **headPtrPtr)
 
 Node* detachLast(Node **headPtrPtr)
 {
+    if (headPtrPtr == NULL || *headPtrPtr == NULL)
+    {
+        return NULL;
+    }
+
+    if ((*headPtrPtr)->nextPtr == NULL)
+    {
+        Node *detachedNode = detachFirst(headPtrPtr);
+        return detachedNode;
+    }
+
+    Node *currentPtr = *headPtrPtr;
+    while (currentPtr->nextPtr->nextPtr != NULL)
+    {
+        currentPtr = currentPtr->nextPtr;
+    }
+
+    Node *detachedPtr = currentPtr->nextPtr;
+    _nullify(&(currentPtr->nextPtr));
+
     // TODO
-    return NULL;
+    return detachedPtr;
 }
 
 
@@ -409,8 +439,36 @@ Node* detachLast(Node **headPtrPtr)
 
 Node* detachValue(Node **headPtrPtr, int value)
 {
+    if (headPtrPtr == NULL || *headPtrPtr == NULL)
+    {
+        fprintf(stderr, "Error: List is empty or invalid.\n");
+        return NULL;
+    }
+
+    if ((*headPtrPtr)->value == value)
+    {
+        return detachFirst(headPtrPtr);
+    }
+
+    Node *currentPtr = *headPtrPtr;
+    while (currentPtr->nextPtr != NULL && currentPtr->nextPtr->value != value) 
+    {
+        currentPtr = currentPtr->nextPtr;
+    }
+
+    if (currentPtr->nextPtr == NULL)
+    {
+        fprintf(stderr, "Error: Value not found in list.\n");
+        return NULL;
+    }
+
+    Node *detachedPtr = currentPtr->nextPtr;
+    currentPtr->nextPtr = detachedPtr->nextPtr;
+
+    _nullify(&(detachedPtr->nextPtr));
+
     // TODO
-    return NULL;
+    return detachedPtr;
 }
 
 
@@ -432,8 +490,16 @@ Node* detachValue(Node **headPtrPtr, int value)
 
 int deleteFirst(Node **headPtrPtr)
 {
+    if (headPtrPtr == NULL || *headPtrPtr == NULL)
+    {
+        fprintf(stderr, "Error: List is empty.\n");
+        return -1;
+    }
+
+    Node *nodeHeadPtr = detachFirst(headPtrPtr);
+    destroyNode(&nodeHeadPtr);
     // TODO
-    return -1;
+    return 0;
 }
 
 
@@ -455,8 +521,17 @@ int deleteFirst(Node **headPtrPtr)
 
 int deleteLast(Node **headPtrPtr)
 {
+    if (headPtrPtr == NULL || *headPtrPtr == NULL) 
+    {
+        fprintf(stderr, "Error: List is empty.\n");
+        return -1;
+    }
+
+    Node *deletedNode = detachLast(headPtrPtr);
+    destroyNode(&deletedNode);
+
     // TODO
-    return -1;
+    return 0;
 }
 
 
@@ -478,8 +553,23 @@ int deleteLast(Node **headPtrPtr)
 
 int deleteValue(Node **headPtrPtr, int value)
 {
+    if (headPtrPtr == NULL || *headPtrPtr == NULL)
+    {
+        fprintf(stderr, "Error: List is empty.\n");
+        return -1;
+    }
+
+    Node *detachedNode = detachValue(headPtrPtr, value);
+
+    if (detachedNode == NULL)
+    {
+        return -1;
+    }
+
+    destroyNode(&detachedNode);
+
     // TODO
-    return -1;
+    return 0;
 }
 
 
@@ -501,6 +591,15 @@ int deleteValue(Node **headPtrPtr, int value)
 
 void destroyList(Node **headPtrPtr)
 {
+    if (headPtrPtr == NULL)
+    {
+        return;
+    }
+
+    while (*headPtrPtr != NULL)
+    {
+        deleteFirst(headPtrPtr);
+    }
     // TODO
 }
 
@@ -516,8 +615,20 @@ void destroyList(Node **headPtrPtr)
 
 int printList(Node *headPtr)
 {
+    if (headPtr == NULL)
+    {
+        printf("List is empty.\n");
+        return -1;
+    }
+
+    Node *currentPtr = headPtr;
+    while (currentPtr != NULL)
+    {
+        printf("Value: %d\n", currentPtr->value);
+        currentPtr = currentPtr->nextPtr;
+    }
     // TODO
-    return -1;
+    return 0;
 }
 
 
@@ -530,6 +641,14 @@ int printList(Node *headPtr)
 
 int listLength(Node *headPtr)
 {
+    int count = 0;
+
+    Node *currentPtr = headPtr;
+    while (currentPtr != NULL)
+    {
+        count++;
+        currentPtr = currentPtr->nextPtr;
+    }
     // TODO
-    return 0;
+    return count;
 }
